@@ -191,7 +191,7 @@ export default function CoverPage() {
                   `/projects/${projectId}/systems/${systemId}/submission/${submissionId}`
                 )
               }
-              className="mb-2 text-sm font-medium text-blue-600 hover:underline"
+              className="mb-2 text-sm font-medium text-red-700 hover:underline"
             >
               ← Back to Submission
             </button>
@@ -217,7 +217,7 @@ export default function CoverPage() {
         <div className="overflow-hidden rounded-2xl border bg-white shadow-lg">
 
           {/* Header */}
-          <div className="border-b-4 border-blue-900 bg-white px-8 py-7 md:px-12">
+          <div className="border-b-4 border-red-800 bg-white px-8 py-7 md:px-12">
             <div className="flex items-start justify-between gap-6">
 
               <div>
@@ -256,7 +256,7 @@ export default function CoverPage() {
                 {getSystemName()}
               </h2>
 
-              <div className="mx-auto mt-6 h-1 w-24 rounded-full bg-blue-900" />
+              <div className="mx-auto mt-6 h-1 w-24 rounded-full bg-red-800" />
 
               <p className="mt-8 text-2xl font-semibold text-gray-700">
                 {project.project_name}
