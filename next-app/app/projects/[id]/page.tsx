@@ -103,6 +103,9 @@ export default function ProjectDetailsPage() {
   const [savingSystemId, setSavingSystemId] =
     useState<string | null>(null);
 
+  const [removingSystemId, setRemovingSystemId] =
+    useState<string | null>(null);
+
   const [message, setMessage] =
     useState('');
 
@@ -677,6 +680,105 @@ export default function ProjectDetailsPage() {
     setSavingCustom(false);
   }
 
+  async function handleRemoveSystem(
+    projectSystem: ProjectSystem
+  ) {
+    const linkedSystem =
+      projectSystem.systems?.[0] ||
+      systems.find(
+        (system) =>
+          system.id === projectSystem.system_id
+      );
+
+    const systemName =
+      projectSystem.custom_system_name ||
+      linkedSystem?.name ||
+      'this system';
+
+    const confirmed =
+      window.confirm(
+        `Remove "${systemName}" from this project?\n\nThis will remove the system from this project only. It will NOT delete the system from the system catalog.`
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setRemovingSystemId(projectSystem.id);
+    setMessage('');
+
+    try {
+      const {
+        count,
+        error: submissionsError,
+      } = await supabase
+        .from('submissions')
+        .select('id', {
+          count: 'exact',
+          head: true,
+        })
+        .eq(
+          'project_system_id',
+          projectSystem.id
+        );
+
+      if (submissionsError) {
+        console.error(
+          'CHECK SYSTEM SUBMISSIONS ERROR:',
+          submissionsError.message
+        );
+
+        setMessage(
+          `Could not check submissions before removing the system: ${submissionsError.message}`
+        );
+
+        return;
+      }
+
+      if ((count || 0) > 0) {
+        setMessage(
+          `Cannot remove "${systemName}" because it has ${count} submission(s) linked to it.`
+        );
+
+        return;
+      }
+
+      const { error: deleteError } =
+        await supabase
+          .from('project_systems')
+          .delete()
+          .eq('id', projectSystem.id)
+          .eq('project_id', projectId);
+
+      if (deleteError) {
+        console.error(
+          'REMOVE SYSTEM ERROR:',
+          deleteError.message
+        );
+
+        setMessage(
+          `Could not remove system: ${deleteError.message}`
+        );
+
+        return;
+      }
+
+      setProjectSystems(
+        (current) =>
+          current.filter(
+            (item) =>
+              item.id !== projectSystem.id
+          )
+      );
+
+      setMessage(
+        `"${systemName}" was removed from this project successfully.`
+      );
+    } finally {
+      setRemovingSystemId(null);
+    }
+  }
+
   if (loading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-gray-100">
@@ -890,25 +992,50 @@ export default function ProjectDetailsPage() {
                             'No description';
 
                       return (
-                        <a
+                        <div
                           key={projectSystem.id}
-                          href={`/projects/${projectId}/systems/${projectSystem.id}`}
-                          className="block rounded-xl border border-green-200 bg-green-50 p-5 transition hover:border-green-400 hover:bg-green-100"
+                          className="rounded-xl border border-green-200 bg-green-50 p-5"
                         >
 
-                          <h4 className="font-semibold text-gray-900">
-                            {systemName}
-                          </h4>
+                          <a
+                            href={`/projects/${projectId}/systems/${projectSystem.id}`}
+                            className="block"
+                          >
 
-                          <p className="mt-2 text-sm text-gray-500">
-                            {description}
-                          </p>
+                            <h4 className="font-semibold text-gray-900">
+                              {systemName}
+                            </h4>
 
-                          <p className="mt-4 text-xs font-medium text-green-700">
-                            Open System →
-                          </p>
+                            <p className="mt-2 text-sm text-gray-500">
+                              {description}
+                            </p>
 
-                        </a>
+                            <p className="mt-4 text-xs font-medium text-green-700">
+                              Open System →
+                            </p>
+
+                          </a>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleRemoveSystem(
+                                projectSystem
+                              )
+                            }
+                            disabled={
+                              removingSystemId ===
+                              projectSystem.id
+                            }
+                            className="mt-4 w-full rounded-lg border border-red-300 bg-white px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {removingSystemId ===
+                            projectSystem.id
+                              ? 'Removing...'
+                              : 'Remove System'}
+                          </button>
+
+                        </div>
                       );
                     }
                   )}
