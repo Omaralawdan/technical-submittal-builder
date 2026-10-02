@@ -46,7 +46,12 @@ export default function CoverPage() {
   const [system, setSystem] = useState<SystemInfo | null>(null);
   const [submission, setSubmission] = useState<Submission | null>(null);
 
+  const [revision, setRevision] = useState('');
+  const [submissionDate, setSubmissionDate] = useState('');
+
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -104,6 +109,16 @@ export default function CoverPage() {
         setProject(projectData);
         setSystem(systemData as unknown as SystemInfo);
         setSubmission(submissionData);
+
+        setRevision(submissionData.revision || '');
+
+        if (submissionData.submission_date) {
+          setSubmissionDate(
+            submissionData.submission_date.slice(0, 10)
+          );
+        } else {
+          setSubmissionDate('');
+        }
       } catch (err) {
         setError(
           err instanceof Error
@@ -140,6 +155,48 @@ export default function CoverPage() {
     return parsed.toLocaleDateString('en-GB');
   }
 
+  async function handleSaveCoverSettings() {
+    setSaving(true);
+    setSaveMessage('');
+    setError('');
+
+    try {
+      const { data, error: updateError } = await supabase
+        .from('submissions')
+        .update({
+          revision: revision.trim() || null,
+          submission_date: submissionDate || null,
+        })
+        .eq('id', submissionId)
+        .eq('project_system_id', systemId)
+        .select('id, revision, submission_date, status')
+        .single();
+
+      if (updateError) {
+        throw new Error(updateError.message);
+      }
+
+      setSubmission(data);
+      setRevision(data.revision || '');
+
+      setSubmissionDate(
+        data.submission_date
+          ? data.submission_date.slice(0, 10)
+          : ''
+      );
+
+      setSaveMessage('Cover settings saved successfully.');
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Failed to save cover settings'
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
   if (loading) {
     return (
       <main className="min-h-screen bg-gray-50 p-8">
@@ -150,7 +207,7 @@ export default function CoverPage() {
     );
   }
 
-  if (error) {
+  if (error && (!project || !system || !submission)) {
     return (
       <main className="min-h-screen bg-gray-50 p-8">
         <div className="mx-auto max-w-5xl rounded-2xl border border-red-200 bg-white p-8 shadow-sm">
@@ -179,84 +236,64 @@ export default function CoverPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-100 p-6 md:p-10">
-      <div className="mx-auto max-w-6xl">
+    <main className="min-h-screen bg-gray-50 p-6 md:p-8">
 
-        {/* Top Bar */}
-        <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <button
-              onClick={() =>
-                router.push(
-                  `/projects/${projectId}/systems/${systemId}/submission/${submissionId}`
-                )
-              }
-              className="mb-2 text-sm font-medium text-red-700 hover:underline"
-            >
-              ← Back to Submission
-            </button>
+      <div className="mx-auto max-w-5xl">
 
-            <h1 className="text-3xl font-bold text-gray-900">
-              Cover
-            </h1>
-
-            <p className="mt-1 text-sm text-gray-500">
-              Submission cover configuration
-            </p>
-          </div>
+        {/* Top Navigation */}
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 
           <button
+            type="button"
+            onClick={() => router.back()}
+            className="text-left text-sm font-medium text-red-700 hover:underline"
+          >
+            ← Back to Submission
+          </button>
+
+          <button
+            type="button"
             onClick={() => window.print()}
-            className="rounded-lg bg-black px-5 py-2.5 text-sm font-semibold text-white hover:bg-gray-800"
+            className="rounded-lg bg-red-800 px-4 py-2 text-sm font-semibold text-white hover:bg-red-900"
           >
             Print / Save PDF
           </button>
+
         </div>
 
-        {/* Cover Preview */}
-        <div className="overflow-hidden rounded-2xl border bg-white shadow-lg">
+        {/* Cover */}
+        <div className="overflow-hidden rounded-2xl border bg-white shadow-sm">
 
           {/* Header */}
           <div className="border-b-4 border-red-800 bg-white px-8 py-7 md:px-12">
+
             <div className="flex items-start justify-between gap-6">
 
               <div>
-                <div className="text-2xl font-extrabold tracking-wide text-gray-900">
+                <div className="text-2xl font-extrabold tracking-tight text-red-800">
                   PETROKIMA
                 </div>
 
-                <div className="mt-1 text-xs font-medium uppercase tracking-[0.25em] text-gray-500">
+                <div className="mt-1 text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">
                   Engineering & Contracting
                 </div>
               </div>
 
-              <div className="text-right">
-                <div className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-                  Technical Submittal
-                </div>
-
-                <div className="mt-1 text-sm font-semibold text-gray-800">
-                  Revision {submission.revision || '—'}
-                </div>
-              </div>
-
-            </div>
-          </div>
-
-          {/* Main Cover */}
-          <div className="px-8 py-14 md:px-16 md:py-20">
-
-            <div className="mx-auto max-w-4xl text-center">
-
-              <div className="mb-8 inline-flex rounded-full border border-gray-200 bg-gray-50 px-5 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-gray-500">
+              <div className="text-right text-xs text-gray-500">
                 Technical Submittal
               </div>
 
-              <h2 className="text-4xl font-extrabold leading-tight text-gray-900 md:text-5xl">
-                {getSystemName()}
-              </h2>
+            </div>
 
-              <div className="mx-auto mt-6 h-1 w-24 rounded-full bg-red-800" />
+            <div className="mx-auto mt-12 max-w-4xl text-center">
+
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-red-700">
+                Technical Material Submission
+              </p>
+
+              <h1 className="mt-4 text-4xl font-extrabold tracking-tight text-gray-900">
+                {getSystemName()}
+              </h1>
 
               <p className="mt-8 text-2xl font-semibold text-gray-700">
                 {project.project_name}
@@ -268,64 +305,64 @@ export default function CoverPage() {
 
             </div>
 
-            {/* Project Information */}
-            <div className="mx-auto mt-16 max-w-4xl overflow-hidden rounded-xl border border-gray-200">
+          </div>
 
-              <div className="border-b bg-gray-50 px-6 py-4">
-                <h3 className="text-sm font-bold uppercase tracking-wider text-gray-700">
-                  Project Information
-                </h3>
-              </div>
+          {/* Project Information */}
+          <div className="mx-auto mt-16 max-w-4xl overflow-hidden rounded-xl border border-gray-200">
 
-              <div className="grid md:grid-cols-2">
-
-                <InfoRow
-                  label="Project"
-                  value={project.project_name}
-                />
-
-                <InfoRow
-                  label="System"
-                  value={getSystemName()}
-                />
-
-                <InfoRow
-                  label="Client"
-                  value={project.client_name || '—'}
-                />
-
-                <InfoRow
-                  label="Consultant"
-                  value={project.consultant || '—'}
-                />
-
-                <InfoRow
-                  label="Contractor"
-                  value={project.contractor || '—'}
-                />
-
-                <InfoRow
-                  label="Revision"
-                  value={submission.revision || '—'}
-                />
-
-                <InfoRow
-                  label="Submission Date"
-                  value={formatDate(submission.submission_date)}
-                />
-
-                <InfoRow
-                  label="Status"
-                  value={submission.status}
-                />
-
-              </div>
+            <div className="border-b bg-gray-50 px-6 py-4">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-gray-700">
+                Project Information
+              </h3>
             </div>
 
+            <div className="grid md:grid-cols-2">
+
+              <InfoRow
+                label="Project"
+                value={project.project_name}
+              />
+
+              <InfoRow
+                label="System"
+                value={getSystemName()}
+              />
+
+              <InfoRow
+                label="Client"
+                value={project.client_name || '—'}
+              />
+
+              <InfoRow
+                label="Consultant"
+                value={project.consultant || '—'}
+              />
+
+              <InfoRow
+                label="Contractor"
+                value={project.contractor || '—'}
+              />
+
+              <InfoRow
+                label="Revision"
+                value={submission.revision || '—'}
+              />
+
+              <InfoRow
+                label="Submission Date"
+                value={formatDate(submission.submission_date)}
+              />
+
+              <InfoRow
+                label="Status"
+                value={submission.status}
+              />
+
+            </div>
           </div>
 
           {/* Footer */}
-          <div className="border-t bg-gray-50 px-8 py-6 md:px-12">
+          <div className="mt-16 border-t bg-gray-50 px-8 py-6 md:px-12">
 
             <div className="flex flex-col gap-3 text-xs text-gray-500 md:flex-row md:items-center md:justify-between">
 
@@ -343,42 +380,82 @@ export default function CoverPage() {
 
         </div>
 
-        {/* Future Controls */}
+        {/* Cover Controls */}
         <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
 
-          <h2 className="text-lg font-semibold text-gray-900">
-            Cover Controls
-          </h2>
+          <div className="flex flex-col gap-2">
+            <h2 className="text-lg font-semibold text-gray-900">
+              Cover Controls
+            </h2>
 
-          <p className="mt-2 text-sm text-gray-500">
-            Cover template, logos, colors and other visual settings
-            will be configurable here in the next stage.
-          </p>
+            <p className="text-sm text-gray-500">
+              Edit the submission-specific information shown on the cover.
+            </p>
+          </div>
 
-          <div className="mt-5 flex flex-wrap gap-3">
+          <div className="mt-6 grid gap-5 md:grid-cols-2">
 
-            <button
-              disabled
-              className="rounded-lg border px-4 py-2 text-sm text-gray-400"
-            >
-              Change Template
-            </button>
+            <div>
+              <label
+                htmlFor="revision"
+                className="mb-2 block text-sm font-semibold text-gray-700"
+              >
+                Revision
+              </label>
 
-            <button
-              disabled
-              className="rounded-lg border px-4 py-2 text-sm text-gray-400"
-            >
-              Upload Logo
-            </button>
+              <input
+                id="revision"
+                type="text"
+                value={revision}
+                onChange={(event) => setRevision(event.target.value)}
+                placeholder="e.g. A"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-red-700 focus:ring-1 focus:ring-red-700"
+              />
+            </div>
 
-            <button
-              disabled
-              className="rounded-lg border px-4 py-2 text-sm text-gray-400"
-            >
-              Customize Colors
-            </button>
+            <div>
+              <label
+                htmlFor="submission-date"
+                className="mb-2 block text-sm font-semibold text-gray-700"
+              >
+                Submission Date
+              </label>
+
+              <input
+                id="submission-date"
+                type="date"
+                value={submissionDate}
+                onChange={(event) => setSubmissionDate(event.target.value)}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-red-700 focus:ring-1 focus:ring-red-700"
+              />
+            </div>
 
           </div>
+
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+
+            <button
+              type="button"
+              onClick={handleSaveCoverSettings}
+              disabled={saving}
+              className="rounded-lg bg-red-800 px-5 py-2.5 text-sm font-semibold text-white hover:bg-red-900 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {saving ? 'Saving...' : 'Save Cover Settings'}
+            </button>
+
+            {saveMessage && (
+              <p className="text-sm font-medium text-green-700">
+                {saveMessage}
+              </p>
+            )}
+
+          </div>
+
+          {error && (
+            <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
+            </p>
+          )}
 
         </div>
 
