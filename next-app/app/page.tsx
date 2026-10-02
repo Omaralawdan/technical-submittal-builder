@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase';
 
@@ -21,17 +22,17 @@ export default function Home() {
 
       if (!user) return;
 
-  const { data, error } = await supabase
-  .from('user_profiles')
-  .select('full_name, role')
-  .eq('id', user.id)
-  .single();
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('full_name, role')
+        .eq('id', user.id)
+        .single();
 
-console.log('USER:', user);
-console.log('PROFILE:', data);
-console.log('PROFILE ERROR:', error?.message);
+      console.log('USER:', user);
+      console.log('PROFILE:', data);
+      console.log('PROFILE ERROR:', error?.message);
 
-setProfile(data);
+      setProfile(data);
     }
 
     loadProfile();
@@ -39,12 +40,13 @@ setProfile(data);
 
   return (
     <main className="min-h-screen bg-gray-100">
-      <header className="border-b bg-white">
+      <header className="border-b-4 border-red-700 bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-8 py-5">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
               Technical Submittal Builder
             </h1>
+
             <p className="text-sm text-gray-500">
               Technical Submission Management System
             </p>
@@ -54,6 +56,7 @@ setProfile(data);
             <p className="font-medium text-gray-900">
               {profile?.full_name || 'User'}
             </p>
+
             <p className="text-sm capitalize text-gray-500">
               {profile?.role || 'Loading...'}
             </p>
@@ -71,43 +74,61 @@ setProfile(data);
         </p>
 
         <div className="mt-8 grid gap-6 md:grid-cols-3">
-          <div className="rounded-2xl bg-white p-6 shadow-sm">
+          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+            <div className="mb-5 h-1.5 w-14 rounded-full bg-red-700" />
+
             <h3 className="text-xl font-semibold text-gray-900">
               Projects
             </h3>
+
             <p className="mt-2 text-gray-600">
               Create and manage projects and systems.
             </p>
 
-            <button className="mt-6 rounded-lg bg-black px-5 py-2.5 text-sm font-medium text-white">
+            <Link
+              href="/projects"
+              className="mt-6 inline-flex rounded-lg bg-red-700 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-red-800"
+            >
               Open Projects
-            </button>
+            </Link>
           </div>
 
-          <div className="rounded-2xl bg-white p-6 shadow-sm">
+          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+            <div className="mb-5 h-1.5 w-14 rounded-full bg-red-700" />
+
             <h3 className="text-xl font-semibold text-gray-900">
               Submissions
             </h3>
+
             <p className="mt-2 text-gray-600">
               Create, edit and generate technical submissions.
             </p>
 
-            <button className="mt-6 rounded-lg bg-black px-5 py-2.5 text-sm font-medium text-white">
+            <Link
+              href="/submissions"
+              className="mt-6 inline-flex rounded-lg bg-red-700 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-red-800"
+            >
               Open Submissions
-            </button>
+            </Link>
           </div>
 
-          <div className="rounded-2xl bg-white p-6 shadow-sm">
+          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+            <div className="mb-5 h-1.5 w-14 rounded-full bg-red-700" />
+
             <h3 className="text-xl font-semibold text-gray-900">
               Database
             </h3>
+
             <p className="mt-2 text-gray-600">
               Products, datasheets, references and company documents.
             </p>
 
-            <button className="mt-6 rounded-lg bg-black px-5 py-2.5 text-sm font-medium text-white">
+            <Link
+              href="/database"
+              className="mt-6 inline-flex rounded-lg bg-red-700 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-red-800"
+            >
               Open Database
-            </button>
+            </Link>
           </div>
         </div>
       </div>
